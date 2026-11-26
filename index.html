@@ -1,0 +1,173 @@
+
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101827">
+<title>WordFlow</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#101827;color:#f5f7fb;font-family:-apple-system,sans-serif;padding:20px}
+header{font-size:25px;font-weight:800;margin:15px 0 25px}
+header span{color:#82d7bd}
+.stats{display:flex;gap:8px;margin-bottom:20px}
+.stat{flex:1;background:#1b2638;border-radius:13px;padding:12px;text-align:center}
+.stat b{display:block;font-size:22px}.stat small{color:#a9b6c9}
+nav{display:flex;gap:7px;margin-bottom:18px}
+button{border:0;border-radius:12px;padding:13px;background:#243248;color:white;font-size:15px}
+nav button{flex:1}
+.active{background:#82d7bd;color:#10251f;font-weight:bold}
+.levels{display:flex;gap:7px;overflow:auto;margin-bottom:18px}
+.levels button{border:1px solid #536174;background:transparent}
+.levels .active{background:#82d7bd;color:#10251f}
+.card{background:linear-gradient(145deg,#1b2638,#243248);border-radius:24px;min-height:300px;padding:25px 15px;text-align:center;display:flex;flex-direction:column;justify-content:center;touch-action:pan-y}
+.tag{color:#82d7bd;font-size:12px;letter-spacing:2px}
+.word{font-size:45px;font-weight:800;margin:22px 0 8px;overflow-wrap:anywhere}
+.pron{color:#a9b6c9}
+.extra{font-size:18px;line-height:1.6;margin-top:25px}
+.hu{color:#82d7bd;margin-top:10px}
+.hint{color:#a9b6c9;font-size:13px;margin-top:25px}
+.actions{display:flex;gap:10px;margin-top:15px}
+.actions button{flex:1;padding:17px}
+.again{background:#49303b;color:#ffb3b3}
+.known{background:#203d39;color:#9df0d5}
+.secondary{width:100%;margin-top:10px}
+.list{background:#1b2638;padding:15px;border-radius:15px;margin-top:15px}
+.item{padding:12px 0;border-bottom:1px solid #ffffff20}
+.muted{color:#a9b6c9}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header>Word<span>Flow</span></header>
+<div class="stats">
+<div class="stat"><b id="knownCount">0</b><small>Ismert</small></div>
+<div class="stat"><b id="hardCount">0</b><small>Gyakorlás</small></div>
+<div class="stat"><b id="totalCount">0</b><small>Összes</small></div>
+</div>
+<nav>
+<button class="active" id="learnTab">Tanulás</button>
+<button id="knownTab">Ismert</button>
+<button id="hardTab">Nehéz</button>
+</nav>
+<section id="learnView">
+<div class="levels" id="levels"></div>
+<div class="card" id="card">
+<div class="tag" id="level">A1 · ANGOL</div>
+<div class="word" id="word">Welcome</div>
+<div class="pron" id="pron">/ˈwelkəm/</div>
+<div class="extra" id="extra" hidden></div>
+<div class="hint" id="hint">Koppints a példamondatért</div>
+</div>
+<div class="actions">
+<button class="again" id="again">← Még gyakorlom</button>
+<button class="known" id="got">Ismerem →</button>
+</div>
+<button class="secondary" id="speak">🔊 Amerikai kiejtés</button>
+</section>
+<section class="list" id="listView" hidden>
+<h3 id="listTitle"></h3>
+<div id="wordList"></div>
+</section>
+<script>
+const words=[
+["the","/ðə/","a, az","The book is on the table.","A könyv az asztalon van.","A1"],
+["be","/biː/","lenni","I want to be happy.","Boldog akarok lenni.","A1"],
+["and","/ænd/","és","Tom and Anna are here.","Tom és Anna itt vannak.","A1"],
+["a","/ə/","egy","I have a dog.","Van egy kutyám.","A1"],
+["in","/ɪn/","-ban, -ben","She lives in London.","Londonban él.","A1"],
+["to","/tuː/","-hoz, -hez","I go to work.","Munkába megyek.","A1"],
+["have","/hæv/","birtokolni","We have a new car.","Van egy új autónk.","A1"],
+["I","/aɪ/","én","I like coffee.","Szeretem a kávét.","A1"],
+["you","/juː/","te, ti","You are very kind.","Nagyon kedves vagy.","A1"],
+["he","/hiː/","ő (férfi)","He works here.","Itt dolgozik.","A1"],
+["she","/ʃiː/","ő (nő)","She is my sister.","Ő a nővérem.","A1"],
+["we","/wiː/","mi","We are ready.","Készen állunk.","A1"],
+["they","/ðeɪ/","ők","They live nearby.","A közelben laknak.","A1"],
+["what","/wʌt/","mi, mit","What is your name?","Hogy hívnak?","A1"],
+["where","/wer/","hol, hová","Where are you from?","Honnan jöttél?","A1"],
+["good","/ɡʊd/","jó","Have a good day!","Legyen szép napod!","A1"],
+["bad","/bæd/","rossz","The weather is bad.","Rossz az idő.","A1"],
+["big","/bɪɡ/","nagy","It is a big house.","Ez egy nagy ház.","A1"],
+["small","/smɔːl/","kicsi","I have a small car.","Kis autóm van.","A1"],
+["go","/ɡoʊ/","menni","I go home at five.","Ötkor megyek haza.","A1"],
+["come","/kʌm/","jönni","Please come in.","Kérlek, gyere be.","A1"],
+["make","/meɪk/","készíteni","I make breakfast.","Reggelit készítek.","A1"],
+["do","/duː/","csinálni","What do you do?","Mivel foglalkozol?","A1"],
+["know","/noʊ/","tudni, ismerni","I know the answer.","Tudom a választ.","A1"],
+["think","/θɪŋk/","gondolni","I think it is good.","Azt gondolom, jó.","A2"],
+["want","/wɑːnt/","akarni","I want to learn English.","Angolul akarok tanulni.","A1"],
+["need","/niːd/","szüksége van rá","I need some help.","Szükségem van segítségre.","A1"],
+["work","/wɝːk/","munka, dolgozni","I work every day.","Minden nap dolgozom.","A1"],
+["time","/taɪm/","idő","What time is it?","Mennyi az idő?","A1"],
+["because","/bɪˈkɔːz/","mert","I stayed home because it rained.","Otthon maradtam, mert esett.","A2"],
+["although","/ɔːlˈðoʊ/","bár, habár","Although it was late, we continued.","Bár késő volt, folytattuk.","B1"],
+["improve","/ɪmˈpruːv/","fejleszteni","I want to improve my English.","Fejleszteni akarom az angolomat.","B1"],
+["reliable","/rɪˈlaɪəbəl/","megbízható","We need a reliable solution.","Megbízható megoldásra van szükségünk.","B2"],
+["maintain","/meɪnˈteɪn/","karbantartani","We maintain the system.","Karbantartjuk a rendszert.","B2"],
+["eventually","/ɪˈventʃuəli/","végül","Eventually, we found a solution.","Végül találtunk megoldást.","B2"],
+["substantial","/səbˈstænʃəl/","jelentős","The project needs substantial investment.","A projekt jelentős beruházást igényel.","C1"],
+["nevertheless","/ˌnevərðəˈles/","mindazonáltal","Nevertheless, we continued.","Mindazonáltal folytattuk.","C1"],
+["assess","/əˈses/","felmérni","We need to assess the risks.","Fel kell mérnünk a kockázatokat.","C1"],
+["accurate","/ˈækjərət/","pontos","The measurements must be accurate.","A méréseknek pontosnak kell lenniük.","B2"],
+["achieve","/əˈtʃiːv/","elérni","You can achieve your goals.","Elérheted a céljaidat.","B1"],
+["available","/əˈveɪləbəl/","elérhető","Is this product available?","Elérhető ez a termék?","A2"],
+["challenge","/ˈtʃælɪndʒ/","kihívás","Learning a language is a challenge.","A nyelvtanulás kihívás.","B1"],
+["consider","/kənˈsɪdər/","megfontolni","Please consider my suggestion.","Kérlek, fontold meg a javaslatomat.","B1"],
+["environment","/ɪnˈvaɪrənmənt/","környezet","We should protect the environment.","Védenünk kell a környezetet.","B1"],
+["furthermore","/ˌfɝːðərˈmɔːr/","továbbá","Furthermore, the cost is lower.","Ezenfelül a költség alacsonyabb.","C1"],
+["hesitate","/ˈhezɪteɪt/","habozni","Do not hesitate to ask.","Ne habozz kérdezni.","B2"],
+["opportunity","/ˌɑːpərˈtuːnəti/","lehetőség","This is a great opportunity.","Ez nagyszerű lehetőség.","B1"],
+["require","/rɪˈkwaɪər/","igényelni","The job requires experience.","A munka tapasztalatot igényel.","B1"],
+["significant","/sɪɡˈnɪfɪkənt/","jelentős","There was a significant change.","Jelentős változás történt.","B2"]
+];
+const $=id=>document.getElementById(id);
+let data=JSON.parse(localStorage.getItem("wordflow")||'{"known":[],"hard":{},"level":"All"}');
+let current=null,step=0,translation=false,tab="learn";
+function save(){localStorage.setItem("wordflow",JSON.stringify(data));stats()}
+function stats(){
+$("knownCount").textContent=data.known.length;
+$("hardCount").textContent=Object.keys(data.hard).length;
+$("totalCount").textContent=words.length;
+}
+function next(){
+let pool=words.filter(w=>(data.level==="All"||w[5]===data.level)&&!data.known.includes(w[0]));
+if(!pool.length){current=null;show();return}
+pool.sort((a,b)=>(data.hard[a[0]]||0)-(data.hard[b[0]]||0));
+current=pool.find(w=>!data.hard[w[0]]||data.hard[w[0]]<=Date.now())||pool[0];
+step=0;translation=false;show();
+}
+function show(){
+if(!current){$("word").textContent="Szép munka!";$("pron").textContent="Nincs több szó ebben a körben.";$("extra").hidden=true;return}
+$("word").textContent=current[0];$("pron").textContent=current[1];$("level").textContent=current[5]+" · ANGOL";
+$("extra").hidden=!step;
+$("extra").innerHTML=step?current[3]+(translation?'<div class="hu">'+current[2]+'<br>'+current[4]+'</div>':""):"";
+$("hint").textContent=!step?"Koppints a példamondatért":!translation?"Koppints a magyar jelentésért":"Balra: gyakorlom · Jobbra: ismerem";
+}
+$("card").onclick=()=>{if(!current)return;if(!step)step=1;else translation=true;show()};
+function answer(ok){
+if(!current)return;
+let w=current[0];
+if(ok){if(!data.known.includes(w))data.known.push(w);delete data.hard[w]}
+else data.hard[w]=Date.now()+120000;
+save();next();
+}
+$("again").onclick=()=>answer(false);
+$("got").onclick=()=>answer(true);
+$("speak").onclick=()=>{if(current&&window.speechSynthesis){let u=new SpeechSynthesisUtterance(current[0]);u.lang="en-US";speechSynthesis.speak(u)}};
+$("levels").innerHTML=["All","A1","A2","B1","B2","C1"].map(x=>'<button data-level="'+x+'" class="'+(x==="All"?"active":"")+'">'+(x==="All"?"Összes":x)+'</button>').join("");
+document.querySelectorAll("[data-level]").forEach(b=>b.onclick=()=>{data.level=b.dataset.level;document.querySelectorAll("[data-level]").forEach(x=>x.classList.toggle("active",x===b));next()});
+function list(type){
+tab=type;$("learnView").hidden=true;$("listView").hidden=false;
+$("listTitle").textContent=type==="known"?"Ismert szavak":"Gyakorlandó szavak";
+let arr=words.filter(w=>type==="known"?data.known.includes(w[0]):data.hard[w[0]]);
+$("wordList").innerHTML=arr.length?arr.map(w=>'<div class="item"><b>'+w[0]+'</b> <span class="muted">– '+w[2]+'</span></div>').join(""):'<p class="muted">Még nincs itt szó.</p>';
+}
+$("learnTab").onclick=()=>{$("learnView").hidden=false;$("listView").hidden=true};
+$("knownTab").onclick=()=>list("known");
+$("hardTab").onclick=()=>list("hard");
+stats();next();
+</script>
+</body>
+</html>
